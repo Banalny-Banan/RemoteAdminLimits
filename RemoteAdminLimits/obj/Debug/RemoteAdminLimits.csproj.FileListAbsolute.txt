@@ -40,3 +40,4 @@ C:\Users\elise\RiderProjects\RemoteAdminLimits\RemoteAdminLimits\bin\Debug\zxing
 C:\Users\elise\RiderProjects\RemoteAdminLimits\RemoteAdminLimits\obj\Debug\RemoteAdminLimits.csproj.CopyComplete
 C:\Users\elise\RiderProjects\RemoteAdminLimits\RemoteAdminLimits\obj\Debug\RemoteAdminLimits.dll
 C:\Users\elise\RiderProjects\RemoteAdminLimits\RemoteAdminLimits\obj\Debug\RemoteAdminLimits.pdb
+C:\Users\elise\RiderProjects\RemoteAdminLimits\RemoteAdminLimits\bin\Debug\0Harmony.xml

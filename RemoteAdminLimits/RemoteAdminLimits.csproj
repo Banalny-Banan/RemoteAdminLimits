@@ -146,6 +146,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="Commands\CommandPath.cs" />
         <Compile Include="Commands\ViewLimits.cs" />
         <Compile Include="Commands\ResetLimit.cs" />
         <Compile Include="Config.cs" />

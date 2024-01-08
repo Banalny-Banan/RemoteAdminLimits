@@ -22,8 +22,8 @@ public class UsageRecorder : PluginModule
     {
         Handlers.RecivingCommand += OnRecivingCommand;
         Handlers.RecivedCommand += OnRecivedCommand;
-        Exiled.Events.Handlers.Server.ReloadedConfigs += LoadLimits;
-        Exiled.Events.Handlers.Server.WaitingForPlayers += LoadLimits;
+        Exiled.Events.Handlers.Server.ReloadedConfigs += LoadConfig;
+        Exiled.Events.Handlers.Server.WaitingForPlayers += LoadConfig;
         Exiled.Events.Handlers.Server.RoundEnded += RoundEndRemoveGroups;
     }
 
@@ -31,8 +31,8 @@ public class UsageRecorder : PluginModule
     {
         Handlers.RecivingCommand -= OnRecivingCommand;
         Handlers.RecivedCommand -= OnRecivedCommand;
-        Exiled.Events.Handlers.Server.ReloadedConfigs -= LoadLimits;
-        Exiled.Events.Handlers.Server.WaitingForPlayers -= LoadLimits;
+        Exiled.Events.Handlers.Server.ReloadedConfigs -= LoadConfig;
+        Exiled.Events.Handlers.Server.WaitingForPlayers -= LoadConfig;
         Exiled.Events.Handlers.Server.RoundEnded -= RoundEndRemoveGroups;
     }
 
@@ -55,11 +55,20 @@ public class UsageRecorder : PluginModule
         }
     }
 
-    private static void LoadLimits()
+    private static void LoadConfig()
     {
-        Log.SendRaw($"Loading RA limits config...", ConsoleColor.Yellow);
+        Log.SendRaw($"[{nameof(RemoteAdminLimits)}] Loading...", ConsoleColor.Yellow);
         Limits = Config.Limits.ToDictionary(grpLimit => grpLimit.Key.ToLower(), grpLimit => grpLimit.Value.ToDictionary(cmdLimit => cmdLimit.Key.Split('|').Select(cmd => cmd.ToLower()).ToArray(), cmdLimit => cmdLimit.Value));
 
+        LoadLimits();
+
+        LoadUnlimitedCommands();
+
+        Log.SendRaw($"[{nameof(RemoteAdminLimits)}] loaded successfully!", ConsoleColor.Yellow);
+    }
+
+    private static void LoadLimits()
+    {
         var totalCommands = 0;
         var commandsFound = 0;
         var commandsNotFound = 0;
@@ -67,7 +76,6 @@ public class UsageRecorder : PluginModule
 
         List<ParentCommand> parentCommands = Helpers.GetAllParentCommands();
         Log.Debug($"Found {parentCommands.Count} parent commands: {string.Join(", ", parentCommands.Select(parentCommand => parentCommand.Command))}");
-
 
         Dictionary<string, Dictionary<string[], int>> newLimits = new();
         foreach (KeyValuePair<string, Dictionary<string[], int>> groupLimit in Limits)
@@ -112,8 +120,10 @@ public class UsageRecorder : PluginModule
         if (commandsNotFound > 0)
             Log.SendRaw($"{commandsNotFound}/{totalCommands} commands were not found in CommandHandler", ConsoleColor.Red);
         Log.SendRaw($"{commandsFound}/{totalCommands} commands were found in CommandHandler. {aliasesProduced} aliases produced", ConsoleColor.White);
+    }
 
-
+    private static void LoadUnlimitedCommands()
+    {
         var unlimitedCommandsFound = 0;
         var unlimitedCommandsNotFound = 0;
         foreach (string command in Config.UnlimitedCommands)
@@ -139,15 +149,13 @@ public class UsageRecorder : PluginModule
         if (unlimitedCommandsNotFound > 0)
             Log.SendRaw($"{unlimitedCommandsNotFound}/{Config.UnlimitedCommands.Length} unlimited commands were not found in CommandHandler", ConsoleColor.Red);
         Log.SendRaw($"{unlimitedCommandsFound}/{Config.UnlimitedCommands.Length} unlimited commands were found in CommandHandler. {UnlimitedCommands.Count} aliases produced", ConsoleColor.White);
-
-        Log.SendRaw($"RA limits config loaded successfully!", ConsoleColor.Yellow);
     }
 
     private static void OnRecivingCommand(RecivingCommandEventArgs ev)
     {
         if (ev.Player is not Player player) return; //если игрок не найден
         if (player.GetAdminGroup() is not string group) return; //если группа не найдена
-        if (Helpers.GetImportantCommand(ev.Query) is not string command) return; //если команда не найдена
+        if (Helpers.GetImportantCommand(ev.Query, out int index) is not string command) return; //если команда не найдена
         if (UnlimitedCommands.Contains(command)) return; //если команда не ограничена
         bool isOnlyLimitGroup = Config.OnlyLimitGroups.Contains(group);
         if (Limits.FirstOrDefault(grpLimit => grpLimit.Key == group).Value is not Dictionary<string[], int> groupLimits) return; //если группы нет в лимитах
@@ -188,8 +196,9 @@ public class UsageRecorder : PluginModule
     private static void OnRecivedCommand(RecivedCommandEventArgs ev)
     {
         //Log.Debug($"RaReply: ({ev.RaReply?.Command})-\"{ev.RaReply?.Response}\" Success: {ev.RaReply?.Success}");
-        if (Helpers.GetImportantCommand(ev.Query) is not string command) return;
-        Log.Debug($"{nameof(Helpers.GetPathToCommand)}(\"{command}\") => \"{Helpers.GetPathToCommand(command)}\"");
+
+        if (Helpers.GetImportantCommand(ev.Query, out _) is not string alias || Helpers.GetPathToCommand(alias) is not string command) return;
+
         if (ev.Player is not Player player) return;
         if (player.GetAdminGroup() is not string group) return;
         if (Limits.FirstOrDefault(grpLimit => grpLimit.Key == group).Value is not Dictionary<string[], int> groupLimits) return;
